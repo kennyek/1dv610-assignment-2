@@ -1,2 +1,3 @@
-# 1dv610-assignment-2
+# 1dv610 Assignment 2
+
 My solution to the assignment "Coding With Requirements".
