@@ -24,12 +24,22 @@ class LoginView
         $name = null;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $message = '';
-        } else if (empty($_POST[self::$name])) {
-            $message = 'Username is missing';
-        } else if (empty($_POST[self::$password])) {
+            return $this->generateLoginFormHTML();
+        }
+
+        if (empty($_POST[self::$password])) {
             $message = 'Password is missing';
+        }
+
+        if (empty($_POST[self::$name])) {
+            $message = 'Username is missing';
+        } else {
             $name = $_POST[self::$name];
+        }
+
+        // If $message is empty, all fields are filled in.
+        if (empty($message)) {
+            $message = 'Wrong name or password';
         }
 
         $response = $this->generateLoginFormHTML($message, $name);
