@@ -21,14 +21,18 @@ class LoginView
     public function response()
     {
         $message = null;
-        
+        $name = null;
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $message = '';
         } else if (empty($_POST[self::$name])) {
             $message = 'Username is missing';
+        } else if (empty($_POST[self::$password])) {
+            $message = 'Password is missing';
+            $name = $_POST[self::$name];
         }
 
-        $response = $this->generateLoginFormHTML($message);
+        $response = $this->generateLoginFormHTML($message, $name);
         //$response .= $this->generateLogoutButtonHTML($message);
         return $response;
     }
@@ -39,7 +43,7 @@ class LoginView
      * @param string $message - Output message.
      * @return void - BUT writes to standard output!
      */
-    private function generateLoginFormHTML($message)
+    private function generateLoginFormHTML($message = '', $name = '')
     {
         return '
 			<form method="post">
@@ -48,7 +52,7 @@ class LoginView
 					<p id="' . self::$messageId . '">' . $message . '</p>
 
 					<label for="' . self::$name . '">Username :</label>
-					<input type="text" id="' . self::$name . '" name="' . self::$name . '" value="" />
+					<input type="text" id="' . self::$name . '" name="' . self::$name . '" value="' . $name . '" />
 
 					<label for="' . self::$password . '">Password :</label>
 					<input type="password" id="' . self::$password . '" name="' . self::$password . '" />
