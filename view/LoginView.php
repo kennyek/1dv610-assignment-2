@@ -20,7 +20,13 @@ class LoginView
      */
     public function response()
     {
-        $message = '';
+        $message = null;
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $message = '';
+        } else if (empty($_POST[self::$name])) {
+            $message = 'Username is missing';
+        }
 
         $response = $this->generateLoginFormHTML($message);
         //$response .= $this->generateLogoutButtonHTML($message);
