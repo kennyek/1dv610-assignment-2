@@ -14,10 +14,10 @@ class DateTimeView
         $minutes = $currentDateTime->format('i');
         $seconds = $currentDateTime->format('s');
 
-        $timeDescription = "
-            $dayOfWeek, the $dayOfMonth" . "th of $monthAsText $year.
-            The time is $hour:$minutes:$seconds
-        ";
+        $timeDescription =
+            "$dayOfWeek, the $dayOfMonth" . "th of $monthAsText $year, " .
+            "The time is $hour:$minutes:$seconds";
+
         return "<p>$timeDescription</p>";
     }
 }
