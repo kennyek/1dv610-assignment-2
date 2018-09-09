@@ -1,5 +1,7 @@
 <?php
 
+session_start();
+
 require_once 'view/LoginView.php';
 require_once 'view/DateTimeView.php';
 require_once 'view/LayoutView.php';

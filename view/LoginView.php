@@ -15,69 +15,52 @@ class LoginView
 
     /**
      * Checks whether the user is logged in or not.
-     * 
-     * TODO: Make independent on POST request.
      *
      * @return boolean Whether the user is logged in or not.
      */
     public function checkIfLoggedIn()
     {
+        $username = null;
+        $password = null;
+
         if (
-            $_SERVER['REQUEST_METHOD'] !== 'POST' ||
-            empty($_POST[self::$password]) ||
-            empty($_POST[self::$name])
+            $_SERVER['REQUEST_METHOD'] === 'GET' &&
+            !empty($_SESSION['account'])
         ) {
-            return false;
+            $account = $_SESSION['account'];
+            $username = $account['username'];
+            $password = $account['password'];
+        } else if (
+            $_SERVER['REQUEST_METHOD'] === 'POST' &&
+            !empty($_POST[self::$password]) &&
+            !empty($_POST[self::$name])
+        ) {
+            $username = $_POST[self::$name];
+            $password = $_POST[self::$password];
         }
 
-        return $this->isProvidedAccountDetailsInDatabase();
+        $isAccountDetailsPresent = !(empty($username) || empty($password));
+
+        return $isAccountDetailsPresent &&
+            $this->isProvidedAccountDetailsInDatabase($username, $password);
     }
 
     /**
      * Creates HTTP response.
      *
      * Should be called after a login attempt has been determined.
-     * 
-     * TODO: Refactor some code for readability.
      *
      * @return void BUT writes to standard output and cookies!
      */
     public function response()
     {
-        $missingUsernameFeedback = 'Username is missing';
-        $missingPasswordFeedback = 'Password is missing';
-        $incorrectAccountDetailsFeedback = 'Wrong name or password';
-        $welcomeFeedback = 'Welcome';
-        $feedback = null;
-        $name = null;
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            return $this->generateLoginFormHTML();
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case 'POST':
+                return $this->httpPostResponse();
+            case 'GET':
+            default:
+                return $this->httpGetResponse();
         }
-
-        if (empty($_POST[self::$password])) {
-            $feedback = $missingPasswordFeedback;
-        }
-
-        if (empty($_POST[self::$name])) {
-            $feedback = $missingUsernameFeedback;
-        } else {
-            $name = $_POST[self::$name];
-        }
-
-        $everyFieldIsFilledIn = empty($feedback);
-
-        if (!$everyFieldIsFilledIn) {
-            return $this->generateLoginFormHTML($feedback, $name);
-        }
-
-        $isDatabaseMatch = $this->isProvidedAccountDetailsInDatabase();
-
-        if (!$isDatabaseMatch) {
-            return $this->generateLoginFormHTML($incorrectAccountDetailsFeedback, $name);
-        }
-
-        return $this->generateLogoutButtonHTML($welcomeFeedback);
     }
 
     /**
@@ -135,10 +118,10 @@ class LoginView
     /**
      * Generates HTML code on the output buffer for the logout button.
      *
-     * @param string $feedback - String output message.
+     * @param string $feedback (optional) - String output message.
      * @return void BUT writes to standard output!
      */
-    private function generateLogoutButtonHTML($feedback)
+    private function generateLogoutButtonHTML($feedback = '')
     {
         return '
 			<form method="post">
@@ -161,18 +144,82 @@ class LoginView
     }
 
     /**
+     * Creates HTTP response for HTTP GET requests.
+     *
+     * @return void
+     */
+    private function httpGetResponse()
+    {
+        return empty($_SESSION['account'])
+            ? $this->generateLoginFormHTML()
+            : $this->generateLogoutButtonHTML();
+    }
+
+    /**
+     * Creates HTTP response for HTTP POST requests.
+     * 
+     * TODO: Refactor to make more readable.
+     *
+     * @return void BUT writes to standard output and cookies!
+     */
+    private function httpPostResponse()
+    {
+        $missingUsernameFeedback = 'Username is missing';
+        $missingPasswordFeedback = 'Password is missing';
+        $incorrectAccountDetailsFeedback = 'Wrong name or password';
+        $welcomeFeedback = 'Welcome';
+        $feedback = null;
+
+        $username = !empty($_POST[self::$name])
+        ? $_POST[self::$name]
+        : '';
+        $password = !empty($_POST[self::$password])
+        ? $_POST[self::$password]
+        : '';
+
+        if (!$password) {
+            $feedback = $missingPasswordFeedback;
+        }
+
+        if (!$username) {
+            $feedback = $missingUsernameFeedback;
+        }
+
+        $everyFieldIsFilledIn = empty($feedback);
+
+        if (!$everyFieldIsFilledIn) {
+            return $this->generateLoginFormHTML($feedback, $username);
+        }
+
+        $isDatabaseMatch = $this->isProvidedAccountDetailsInDatabase($username, $password);
+
+        if ($isDatabaseMatch) {
+            $_SESSION['account'] = [
+                'username' => $_POST[self::$name],
+                'password' => $_POST[self::$password],
+            ];
+        } else {
+            return $this->generateLoginFormHTML($incorrectAccountDetailsFeedback, $username);
+        }
+
+        return $this->generateLogoutButtonHTML($welcomeFeedback);
+    }
+
+    /**
      * Check whether the submitted credentials has a match in the database.
      *
+     * @param string $username - The username to look for in the database.
+     * @param string $password - The password to try to match against the username in the database.
      * @return boolean True if submitted credentials has a match in the database.
      */
-    private function isProvidedAccountDetailsInDatabase()
+    private function isProvidedAccountDetailsInDatabase($username, $password)
     {
         $dbConnection = $this->createDatabaseConnection();
 
         // Clean query without the ability to execute.
         $query = sprintf("SELECT * FROM users WHERE username LIKE '%s' AND password LIKE '%s'",
-            mysqli_real_escape_string($dbConnection, $_POST[self::$name]),
-            mysqli_real_escape_string($dbConnection, $_POST[self::$password])
+            mysqli_real_escape_string($dbConnection, $username),
+            mysqli_real_escape_string($dbConnection, $password)
         );
 
         $queryResult = mysqli_query($dbConnection, $query);
