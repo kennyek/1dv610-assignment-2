@@ -12,4 +12,4 @@ $loginView = new LoginView();
 $dateTimeView = new DateTimeView();
 $layoutView = new LayoutView();
 
-$layoutView->render(false, $loginView, $dateTimeView);
+$layoutView->render($loginView->checkIfLoggedIn(), $loginView, $dateTimeView);
