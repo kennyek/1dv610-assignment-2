@@ -18,6 +18,16 @@ class DatabaseConnection
     }
 
     /**
+     * Returns the connection to the database.
+     *
+     * @return mysqli The connection to the database.
+     */
+    public function getConnection(): mysqli
+    {
+        return $this->connection;
+    }
+
+    /**
      * Checks if a user exists in the database.
      *
      * @param User $user - The user to check for in the database.
@@ -27,7 +37,7 @@ class DatabaseConnection
     {
         $escapedUsername = $this->connection->real_escape_string($user->getUsername());
         $escapedPassword = $this->connection->real_escape_string($user->getPassword());
-        $query = 
+        $query =
             "SELECT * FROM users " .
             "WHERE username LIKE ? " .
             "AND password LIKE ?";
@@ -38,7 +48,7 @@ class DatabaseConnection
 
         $result = $preparedStatement->get_result();
         $fetchedUserRow = $result->fetch_assoc();
-        
+
         $preparedStatement->close();
 
         return !empty($fetchedUserRow);

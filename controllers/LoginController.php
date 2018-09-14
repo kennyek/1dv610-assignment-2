@@ -8,11 +8,18 @@ require_once 'views/LoginView.php';
 /**
  * Handles the login logic, such as checking logged in status and handle
  * requests for the login/logout page.
+ *
+ * TODO: Maybe the instance should not hold an instance of the views as fields,
+ * but instanciate in the methods. Re-evaluate!
+ * 
+ * TODO: Must remove hard coded logic such as the static variables.
  */
 class LoginController
 {
     private static $name = 'LoginView::UserName';
     private static $password = 'LoginView::Password';
+    private static $login = 'LoginView::Login';
+    private static $logout = 'LoginView::Logout';
 
     /** @var LoginView */
     private $layoutView;
@@ -28,7 +35,7 @@ class LoginController
     }
 
     /**
-     * Creates HTTP response.
+     * Creates HTTP response and writes it to standard output and cookies.
      *
      * @return void BUT writes to standard output and cookies!
      */
@@ -44,6 +51,76 @@ class LoginController
     }
 
     /**
+     * Renders a login view in response to a HTTP GET request.
+     *
+     * @return void BUT writes to standard output and cookies!
+     */
+    private function httpGetResponse()
+    {
+        $isLoggedIn = $this->isLoggedIn();
+        $loginViewHtml = empty($_SESSION['user'])
+            ? $this->loginView->generateLoginFormHTML()
+            : $this->loginView->generateLogoutButtonHTML();
+
+        $this->layoutView->render($isLoggedIn, $loginViewHtml);
+    }
+
+    /**
+     * Renders a login view in response to a HTTP POST login request.
+     * 
+     * @return void BUT writes to standard output and cookies!
+     */
+    private function httpPostLoginResponse()
+    {
+        $welcomeFeedback = 'Welcome';
+
+        $username = $this->retrieveValueFromPostData(self::$name);
+        $password = $this->retrieveValueFromPostData(self::$password);
+
+        try {
+            $user = new User($username, $password);
+        } catch (Exception $exception) {
+            $loginViewHtml = $this->loginView->generateLoginFormHTML($exception->getMessage(), $username);
+            return $this->layoutView->render(false, $loginViewHtml);
+        }
+
+        $_SESSION['user'] = [
+            'username' => $user->getUsername(),
+            'password' => $user->getPassword()
+        ];
+
+        $loginViewHtml = $this->loginView->generateLogoutButtonHTML($welcomeFeedback);
+        return $this->layoutView->render(true, $loginViewHtml);
+    }
+
+    /**
+     * Renders a login view in response to a HTTP POST logout request.
+     * 
+     * @return void BUT writes to standard output and cookies!
+     */
+    private function httpPostLogoutResponse()
+    {
+        $loginViewHtml = $this->loginView->generateLoginFormHTML();
+        return $this->layoutView->render(false, $loginViewHtml);
+    }
+
+    /**
+     * Renders a login view in response to a HTTP POST request.
+     * 
+     * TODO: Refactor to make more readable.
+     *
+     * @return void BUT writes to standard output and cookies!
+     */
+    private function httpPostResponse()
+    {
+        if (!empty($_POST[self::$logout])) {
+            return $this->httpPostLogoutResponse();
+        } else {
+            return $this->httpPostLoginResponse();
+        }
+    }
+
+    /**
      * Checks whether the user is logged in or not.
      * 
      * TODO: Refactor to make easier to read.
@@ -52,108 +129,34 @@ class LoginController
      */
     public function isLoggedIn(): bool
     {
-        $username = null;
-        $password = null;
+        $username = '';
+        $password = '';
 
         switch ($_SERVER['REQUEST_METHOD']) {
             case 'POST':
-                $username = (!empty($_POST[self::$name])
-                    ? $_POST[self::$name]
-                    : ''
-                );
-                $password = (!empty($_POST[self::$password])
-                    ? $_POST[self::$password]
-                    : ''
-                );
+                $username = $_POST[self::$name] ?? '';
+                $password = $_POST[self::$password] ?? '';
+
                 break;
             case 'GET':
-                $account = (!empty($_SESSION['account'])
-                    ? $_SESSION['account']
-                    : new User()
-                );
-                $username = $account->getUsername();
-                $password = $account->getPassword();
-                break;
-            default:
-                $username = '';
-                $password = '';
+                if (empty($_SESSION['user'])) {
+                    break;
+                }
+
+                $user = $_SESSION['user'];
+                $username = $user['username'];
+                $password = $user['password'];
+
                 break;
         }
 
-        $isAccountDetailsPresent = !(empty($username) || empty($password));
-
-        return ($isAccountDetailsPresent &&
-            $this->isProvidedAccountDetailsInDatabase($username, $password));
-    }
-
-    /**
-     * Renders a login view in response to a HTTP GET request.
-     *
-     * @return void BUT writes to standard output and cookies!
-     */
-    private function httpGetResponse()
-    {
-        $isLoggedIn = $this->isLoggedIn();
-        $loginViewHtml = empty($_SESSION['account'])
-            ? $this->loginView->generateLoginFormHTML()
-            : $this->loginView->generateLogoutButtonHTML();
-
-        $this->layoutView->render($isLoggedIn, $loginViewHtml);
-    }
-
-    /**
-     * Creates HTTP response for HTTP POST requests.
-     * 
-     * TODO: Refactor to make more readable.
-     *
-     * @return void BUT writes to standard output and cookies!
-     */
-    private function httpPostResponse()
-    {
-        $missingUsernameFeedback = 'Username is missing';
-        $missingPasswordFeedback = 'Password is missing';
-        $incorrectAccountDetailsFeedback = 'Wrong name or password';
-        $welcomeFeedback = 'Welcome';
-
-        $username = $this->retrieveValueFromPostData(self::$name);
-        $password = $this->retrieveValueFromPostData(self::$password);
-
-        $feedback = (empty($username)
-            ? $missingUsernameFeedback
-            : (empty($password)
-                ? $missingPasswordFeedback
-                : null
-            ));
-
-        if (!empty($feedback)) {
-            $loginViewHtml = $this->loginView->generateLoginFormHTML($feedback, $username);
-            return $this->layoutView->render(false, $loginViewHtml);
+        try {
+            $user = new User($username, $password);
+        } catch (Exception $exception) {
+            return false;
         }
 
-        $user = new User($username, $password);
-        $isUserInDatabase = $this->isProvidedAccountDetailsInDatabase($user);
-
-        if ($isUserInDatabase) {
-            $_SESSION['user'] = $user;
-        } else {
-            $loginViewHtml = $this->loginView->generateLoginFormHTML($incorrectAccountDetailsFeedback, $username);
-            return $this->layoutView->render(false, $loginViewHtml);
-        }
-
-        $loginViewHtml = $this->loginView->generateLogoutButtonHTML($welcomeFeedback);
-        return $this->layoutView->render(true, $loginViewHtml);
-    }
-
-    /**
-     * Checks if a user exists in the database.
-     *
-     * @param User $user - The user to check for in the database.
-     * @return bool Whether the user exists in the database or not.
-     */
-    private function isProvidedAccountDetailsInDatabase(User $user): bool
-    {
-        $databaseConnection = new DatabaseConnection();
-        return $databaseConnection->isUserInDatabase($user);
+        return true;
     }
 
     /**
