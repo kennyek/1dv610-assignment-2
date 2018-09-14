@@ -5,7 +5,7 @@ class DateTimeView
     /** Renders a paragraph describing current date and time. */
     public function show()
     {
-        $currentDateTime = new DateTime('now');
+        $currentDateTime = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
         $dayOfWeek = $currentDateTime->format('l');
         $dayOfMonth = $currentDateTime->format('j');
         $monthAsText = $currentDateTime->format('F');

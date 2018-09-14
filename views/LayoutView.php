@@ -1,38 +1,48 @@
 <?php
 
+require_once 'views/DateTimeView.php';
+
+/** View for the layout of the web page. */
 class LayoutView
 {
+    /** @var DateTimeView */
+    private $dateTimeView;
+
+    /** Creates a new LayoutView. */
+    public function __construct()
+    {
+        $this->dateTimeView = new DateTimeView();
+    }
+
     /**
      * Prints the HTML layout to the browser.
      *
      * @param bool $isLoggedIn - Whether the user is signed in or not.
-     * @param LoginView $loginView - Form for signing in or out.
-     * @param DateTimeView $dateTimeView - A paragraph displaying a time stamp.
-     * @return void
+     * @param string $loginViewHtml - Form for signing in or out.
+     * @return void BUT writes to standard output!
      */
-    public function render($isLoggedIn, LoginView $loginView, DateTimeView $dateTimeView)
+    public function render($isLoggedIn, string $loginViewHtml)
     {
         echo '
             <!DOCTYPE html>
             <html>
-        
+
             <head>
             <meta charset="utf-8">
             <title>Login Example</title>
             </head>
-        
+
             <body>
             <h1>Assignment 2</h1>
 
             ' . $this->renderIsLoggedIn($isLoggedIn) . '
 
             <div class="container">
-                ' . $loginView->response() . '
-
-                ' . $dateTimeView->show() . '
+                ' . $loginViewHtml . '
+                ' . $this->dateTimeView->show() . '
             </div>
             </body>
-        
+
             </html>
         ';
     }
@@ -41,7 +51,7 @@ class LayoutView
      * Creates a heading with a message of sign in status.
      *
      * @param bool $isLoggedIn - Whether or not the user is logged in.
-     * @return string - A second level heading tag with sign in status.
+     * @return string - HTML for a second level heading tag with sign in status.
      */
     private function renderIsLoggedIn($isLoggedIn)
     {
