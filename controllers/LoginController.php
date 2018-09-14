@@ -110,7 +110,14 @@ class LoginController
      */
     private function httpPostLogoutResponse()
     {
-        $loginViewHtml = $this->loginView->generateLoginFormHTML('Bye bye!');
+        $logoutMessage = '';
+
+        if (isset($_SESSION['user'])) {
+            unset ($_SESSION['user']);
+            $logoutMessage = 'Bye bye!';
+        }
+
+        $loginViewHtml = $this->loginView->generateLoginFormHTML($logoutMessage);
         return $this->layoutView->render(false, $loginViewHtml);
     }
 
