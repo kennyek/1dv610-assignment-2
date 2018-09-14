@@ -11,7 +11,7 @@ require_once 'views/LoginView.php';
  *
  * TODO: Maybe the instance should not hold an instance of the views as fields,
  * but instanciate in the methods. Re-evaluate!
- * 
+ *
  * TODO: Must remove hard coded logic such as the static variables.
  */
 class LoginController
@@ -59,8 +59,8 @@ class LoginController
     {
         $isLoggedIn = $this->isLoggedIn();
         $loginViewHtml = empty($_SESSION['user'])
-            ? $this->loginView->generateLoginFormHTML()
-            : $this->loginView->generateLogoutButtonHTML();
+        ? $this->loginView->generateLoginFormHTML()
+        : $this->loginView->generateLogoutButtonHTML();
 
         $this->layoutView->render($isLoggedIn, $loginViewHtml);
     }
@@ -68,6 +68,8 @@ class LoginController
     /**
      * Renders a login view in response to a HTTP POST login request.
      * 
+     * TODO: Refactor and remove nested if-statement.
+     *
      * @return void BUT writes to standard output and cookies!
      */
     private function httpPostLoginResponse()
@@ -76,6 +78,14 @@ class LoginController
 
         $username = $this->retrieveValueFromPostData(self::$name);
         $password = $this->retrieveValueFromPostData(self::$password);
+
+        if (isset($_SESSION['user'])) {
+            $user = $_SESSION['user'];
+            if ($user['username'] === $username && $user['password'] === $password) {
+                $loginViewHtml = $this->loginView->generateLogoutButtonHTML();
+                return $this->layoutView->render(true, $loginViewHtml);
+            }
+        }
 
         try {
             $user = new User($username, $password);
@@ -86,7 +96,7 @@ class LoginController
 
         $_SESSION['user'] = [
             'username' => $user->getUsername(),
-            'password' => $user->getPassword()
+            'password' => $user->getPassword(),
         ];
 
         $loginViewHtml = $this->loginView->generateLogoutButtonHTML($welcomeFeedback);
@@ -95,7 +105,7 @@ class LoginController
 
     /**
      * Renders a login view in response to a HTTP POST logout request.
-     * 
+     *
      * @return void BUT writes to standard output and cookies!
      */
     private function httpPostLogoutResponse()
@@ -106,7 +116,7 @@ class LoginController
 
     /**
      * Renders a login view in response to a HTTP POST request.
-     * 
+     *
      * TODO: Refactor to make more readable.
      *
      * @return void BUT writes to standard output and cookies!
@@ -122,7 +132,7 @@ class LoginController
 
     /**
      * Checks whether the user is logged in or not.
-     * 
+     *
      * TODO: Refactor to make easier to read.
      *
      * @return bool
