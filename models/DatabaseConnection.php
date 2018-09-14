@@ -51,15 +51,15 @@ class DatabaseConnection
      */
     private function createConnection(): mysqli
     {
-        $host = getenv('DB_HOST');
-        $username = getenv('DB_USERNAME');
-        $password = getenv('DB_PASSWORD');
-        $name = getenv('DB_NAME');
+        $host = $_ENV['DB_HOST'];
+        $username = $_ENV['DB_USERNAME'];
+        $password = $_ENV['DB_PASSWORD'];
+        $name = $_ENV['DB_NAME'];
 
         $connection = new mysqli($host, $username, $password, $name);
 
         if ($connection->connect_error) {
-            $exitMessage = (getenv('ENVIRONMENT') === 'development'
+            $exitMessage = ($_ENV['ENVIRONMENT'] === 'development'
                 ? ('Connection failed: ' . mysqli_connect_error())
                 : 'Error connecting to database.'
             );
