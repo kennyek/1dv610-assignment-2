@@ -110,7 +110,7 @@ class LoginController
      */
     private function httpPostLogoutResponse()
     {
-        $loginViewHtml = $this->loginView->generateLoginFormHTML();
+        $loginViewHtml = $this->loginView->generateLoginFormHTML('Bye bye!');
         return $this->layoutView->render(false, $loginViewHtml);
     }
 
