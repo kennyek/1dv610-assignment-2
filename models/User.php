@@ -12,7 +12,7 @@ class User
     private $password = '';
 
     /**
-     * Creates a new User.
+     * Fetches a User from the database.
      *
      * @param string $username (optional) - The user's username. Set to an empty
      * string if not provided.
@@ -63,6 +63,8 @@ class User
     /**
      * Validates provided credentials against the database. Throws exception if
      * there is no match.
+     * 
+     * TODO: Fix handles to many things.
      *
      * @param $username - The username to check for in the database.
      * @param $password - The password to match against the username in the
@@ -77,8 +79,35 @@ class User
 
         $escapedUsername = $connection->real_escape_string($username);
         $escapedPassword = $connection->real_escape_string($password);
+
         $query =
             "SELECT * FROM users " .
+            "WHERE username LIKE ?";
+
+        $preparedStatement = $connection->prepare($query);
+        $preparedStatement->bind_param('s', $escapedUsername);
+        $preparedStatement->execute();
+
+        $result = $preparedStatement->get_result();
+        $fetchedUserRow = $result->fetch_assoc();
+
+        $preparedStatement->close();
+
+        $noSuchUserFeedback = 'No such user in database';
+
+        if (empty($fetchedUserRow)) {
+            throw new Exception($noSuchUserFeedback);
+        }
+
+        $hashedPassword = $fetchedUserRow['password'];
+        $correctPassword = password_verify($escapedPassword, $hashedPassword);
+
+        if ($correctPassword) {
+            return;
+        }
+
+        $query =
+            "SELECT * FROM cookies " .
             "WHERE username LIKE ? " .
             "AND password LIKE ?";
 
@@ -87,12 +116,15 @@ class User
         $preparedStatement->execute();
 
         $result = $preparedStatement->get_result();
-        $fetchedUserRow = $result->fetch_assoc();
+        $fetchedCookieRow = $result->fetch_assoc();
 
         $preparedStatement->close();
 
-        if (empty($fetchedUserRow)) {
-            throw new Exception('No such user in database');
+        if (empty($fetchedCookieRow)) {
+            throw new Exception($noSuchUserFeedback);
         }
+
+        $this->username = $fetchedCookieRow['username'];
+        $this->password = $fetchedCookieRow['password'];
     }
 }

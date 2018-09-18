@@ -1,5 +1,7 @@
 <?php
 
+require_once 'lib/SecurityUtilities.php';
+require_once 'models/Cookie.php';
 require_once 'models/DatabaseConnection.php';
 require_once 'models/User.php';
 require_once 'views/LayoutView.php';
@@ -16,10 +18,14 @@ require_once 'views/LoginView.php';
  */
 class LoginController
 {
+    // TODO: This is cheating. Get from view in future.
     private static $name = 'LoginView::UserName';
     private static $password = 'LoginView::Password';
+    private static $cookieName = 'LoginView::CookieName';
+    private static $cookiePassword = 'LoginView::CookiePassword';
     private static $login = 'LoginView::Login';
     private static $logout = 'LoginView::Logout';
+    private static $keep = 'LoginView::KeepMeLoggedIn';
 
     /** @var LoginView */
     private $layoutView;
@@ -57,17 +63,45 @@ class LoginController
      */
     private function httpGetResponse()
     {
+        $welcomeWithCookieFeedback = 'Welcome back with cookie';
         $isLoggedIn = $this->isLoggedIn();
-        $loginViewHtml = empty($_SESSION['user'])
-        ? $this->loginView->generateLoginFormHTML()
-        : $this->loginView->generateLogoutButtonHTML();
+        $isSessionActive = !empty($_SESSION['user']);
+        $isCookiesSet = !empty($_COOKIE[self::$cookieName]) && !empty($_COOKIE[self::$cookiePassword]);
+
+        if ($isSessionActive) {
+            $loginViewHtml = $this->loginView->generateLogoutButtonHTML();
+        } else if ($isCookiesSet) {
+            try {
+                $username = $_COOKIE[self::$cookieName];
+                $password = $_COOKIE[self::$cookiePassword];
+                Cookie::retrieveCookieFromDatabase($username, $password);
+
+                $user = new User($username, $password);
+
+                $_SESSION['user'] = [
+                    'username' => $user->getUsername(),
+                    'password' => $user->getPassword(),
+                ];
+
+                $loginViewHtml = $this->loginView->generateLogoutButtonHTML($welcomeWithCookieFeedback);
+            } catch (Exception $exception) {
+                $loginViewHtml = $this->loginView->generateLoginFormHTML($exception->getMessage());
+            }
+        } else {
+            $loginViewHtml = $this->loginView->generateLoginFormHTML();
+        }
+        // $loginViewHtml = ($isSessionActive
+        //     ? $this->loginView->generateLogoutButtonHTML()
+        //     : ($isCookiesSet
+        //     ? $this->loginView->generateLogoutButtonHTML($welcomeWithCookieFeedback)
+        //     : $this->loginView->generateLoginFormHTML()));
 
         $this->layoutView->render($isLoggedIn, $loginViewHtml);
     }
 
     /**
      * Renders a login view in response to a HTTP POST login request.
-     * 
+     *
      * TODO: Refactor and remove nested if-statement.
      *
      * @return void BUT writes to standard output and cookies!
@@ -99,6 +133,17 @@ class LoginController
             'password' => $user->getPassword(),
         ];
 
+        if (isset($_POST[self::$keep])) {
+            $randomString = SecurityUtilities::createRandomStringOfLength(30);
+
+            setcookie(self::$cookieName, $username, time() + 3600);
+            setcookie(self::$cookiePassword, $randomString, time() + 3600);
+
+            $cookie = Cookie::insertCookieIntoDatabase($username, $randomString);
+
+            $welcomeFeedback = 'Welcome and you will be remembered';
+        }
+
         $loginViewHtml = $this->loginView->generateLogoutButtonHTML($welcomeFeedback);
         return $this->layoutView->render(true, $loginViewHtml);
     }
@@ -113,8 +158,13 @@ class LoginController
         $logoutMessage = '';
 
         if (isset($_SESSION['user'])) {
-            unset ($_SESSION['user']);
+            unset($_SESSION['user']);
             $logoutMessage = 'Bye bye!';
+        }
+
+        if (isset($_COOKIE[self::$cookieName])) {
+            unset($_COOKIE[self::$cookieName]);
+            unset($_COOKIE[self::$cookiePassword]);
         }
 
         $loginViewHtml = $this->loginView->generateLoginFormHTML($logoutMessage);
@@ -141,6 +191,7 @@ class LoginController
      * Checks whether the user is logged in or not.
      *
      * TODO: Refactor to make easier to read.
+     * TODO: Remove nestled try-catch
      *
      * @return bool
      */
@@ -156,21 +207,29 @@ class LoginController
 
                 break;
             case 'GET':
-                if (empty($_SESSION['user'])) {
-                    break;
+                $isSessionActive = !empty($_SESSION['user']);
+                $isCookiesSet = !empty($_COOKIE[self::$cookieName]) && !empty($_COOKIE[self::$cookieName]);
+
+                if ($isSessionActive) {
+                    $user = $_SESSION['user'];
+                    $username = $user['username'];
+                    $password = $user['password'];
+                } else if ($isCookiesSet) {
+                    $username = $_COOKIE[self::$cookieName];
+                    $password = $_COOKIE[self::$cookiePassword];
                 }
-
-                $user = $_SESSION['user'];
-                $username = $user['username'];
-                $password = $user['password'];
-
+                
                 break;
         }
 
         try {
             $user = new User($username, $password);
         } catch (Exception $exception) {
-            return false;
+            try {
+                Cookie::retrieveCookieFromDatabase($username, $password);
+            } catch (Exception $exception) {
+                return false;
+            }
         }
 
         return true;
