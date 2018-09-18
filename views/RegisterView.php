@@ -16,7 +16,7 @@ class RegisterView
      * @param string $feedback (optional) - Output message.
      * @return string The HTML code for the login form.
      */
-    public function generateRegisterFormHTML(string $feedback = ''): string
+    public function generateRegisterFormHTML(string $feedback = '', string $name = ''): string
     {
         return '
 			<form method="post">
@@ -25,7 +25,7 @@ class RegisterView
                     <p id="' . self::$messageId . '">' . $feedback . '</p>
 
 					<label for="' . self::$name . '">Username :</label>
-                    <input type="text" id="' . self::$name . '" name="' . self::$name . '" value="" />
+                    <input type="text" id="' . self::$name . '" name="' . self::$name . '" value="' . $name . '" />
                     <br />
 
 					<label for="' . self::$password . '">Password :</label>

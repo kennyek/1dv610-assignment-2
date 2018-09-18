@@ -30,6 +30,9 @@ class LoginController
     private static $logout = 'LoginView::Logout';
     private static $keep = 'LoginView::KeepMeLoggedIn';
     private static $register = 'RegisterView::Register';
+    private static $registerName = 'RegisterView::UserName';
+    private static $registerPassword = 'RegisterView::Password';
+    private static $registerPasswordRepeat = 'RegisterView::PasswordRepeat';
 
     /** @var LoginView */
     private $layoutView;
@@ -194,6 +197,31 @@ class LoginController
         return $this->layoutView->render(false, $loginViewHtml);
     }
 
+    private function httpPostRegisterResponse()
+    {
+        $feedback = '';
+
+        $username = (isset($_POST[self::$registerName])
+            ? $_POST[self::$registerName]
+            : '');
+        $password = (isset($_POST[self::$registerPassword])
+            ? $_POST[self::$registerPassword]
+            : '');
+
+        $passwordRepeat = (isset($_POST[self::$registerPasswordRepeat])
+            ? $_POST[self::$registerPasswordRepeat]
+            : '');
+
+        try {
+            User::insertUserIntoDatabase($username, $password, $passwordRepeat);
+        } catch (Exception $exception) {
+            $feedback = $exception->getMessage();
+        }
+
+        $registerViewHtml = $this->registerView->generateRegisterFormHTML($feedback, $username);
+        return $this->layoutView->render(false, $registerViewHtml);
+    }
+
     /**
      * Renders a login view in response to a HTTP POST request.
      *
@@ -203,7 +231,9 @@ class LoginController
      */
     private function httpPostResponse()
     {
-        if (!empty($_POST[self::$logout])) {
+        if (isset($_POST[self::$register])) {
+            return $this->httpPostRegisterResponse();
+        } else if (isset($_POST[self::$logout])) {
             return $this->httpPostLogoutResponse();
         } else {
             return $this->httpPostLoginResponse();

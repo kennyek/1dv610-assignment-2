@@ -1,5 +1,6 @@
 <?php
 
+require_once 'lib/SecurityUtilities.php';
 require_once 'models/DatabaseConnection.php';
 
 /** Represents a user account. */
@@ -10,6 +11,61 @@ class User
 
     /** @var string */
     private $password = '';
+
+    /**
+     * Inserts a user to the database.
+     * 
+     * TODO: Perhaps add some exception handling.
+     *
+     * @param string $username - The username to be put in the database.
+     * @param string $password - The password to be put in the database.
+     * @return void
+     */
+    public static function insertUserIntoDatabase(string $username, string $password, string $passwordRepeat)
+    {
+        $exceptionFeedback = '';
+        $usernameLength = strlen($username);
+        $minimumUsernameLength = 3;
+        $minimumPasswordLength = 6;
+        
+        if (strlen($username) < $minimumUsernameLength) {
+            $exceptionFeedback .=
+                'Username has too few characters, at least ' .
+                $minimumUsernameLength .
+                ' characters.<br />';
+        }
+
+        if (strlen($password) < $minimumPasswordLength) {
+            $exceptionFeedback .=
+                'Password has too few characters, at least ' .
+                $minimumPasswordLength .
+                ' characters.<br />';
+        }
+
+        if ($password !== $passwordRepeat) {
+            $exceptionFeedback .= 'Passwords do not match.<br />';
+        }
+
+        if (!empty($exceptionFeedback)) {
+            throw new Exception($exceptionFeedback);
+        }
+
+        $databaseConnection = new DatabaseConnection();
+        $connection = $databaseConnection->getConnection();
+        
+        $escapedUsername = $connection->real_escape_string($username);
+        $encryptedPassword = SecurityUtilities::encryptString($password);
+
+        $query =
+            "INSERT INTO users (username, password) " .
+            "VALUES (?, ?)";
+
+        $preparedStatement = $connection->prepare($query);
+        $preparedStatement->bind_param('ss', $escapedUsername, $encryptedPassword);
+        $preparedStatement->execute();
+
+        $preparedStatement->close();
+    }
 
     /**
      * Fetches a User from the database.
