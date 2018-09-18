@@ -46,6 +46,10 @@ class User
             $exceptionFeedback .= 'Passwords do not match.<br />';
         }
 
+        if (self::isUserInDatabase($username)) {
+            $exceptionFeedback .= 'User exists, pick another username.<br />';
+        }
+
         if (!empty($exceptionFeedback)) {
             throw new Exception($exceptionFeedback);
         }
@@ -65,6 +69,29 @@ class User
         $preparedStatement->execute();
 
         $preparedStatement->close();
+    }
+
+    public static function isUserInDatabase($username)
+    {
+        $databaseConnection = new DatabaseConnection();
+        $connection = $databaseConnection->getConnection();
+
+        $escapedUsername = $connection->real_escape_string($username);
+
+        $query =
+            "SELECT * FROM users " .
+            "WHERE username LIKE ?";
+
+        $preparedStatement = $connection->prepare($query);
+        $preparedStatement->bind_param('s', $escapedUsername);
+        $preparedStatement->execute();
+
+        $result = $preparedStatement->get_result();
+        $fetchedUserRow = $result->fetch_assoc();
+
+        $preparedStatement->close();
+
+        return !empty($fetchedUserRow);
     }
 
     /**
