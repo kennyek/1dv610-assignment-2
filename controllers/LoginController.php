@@ -15,6 +15,8 @@ require_once 'views/LoginView.php';
  * but instanciate in the methods. Re-evaluate!
  *
  * TODO: Must remove hard coded logic such as the static variables.
+ * 
+ * TODO: Refactor everything.
  */
 class LoginController
 {
@@ -58,6 +60,8 @@ class LoginController
 
     /**
      * Renders a login view in response to a HTTP GET request.
+     * 
+     * TODO: Refactor.
      *
      * @return void BUT writes to standard output and cookies!
      */
@@ -65,7 +69,9 @@ class LoginController
     {
         $welcomeWithCookieFeedback = 'Welcome back with cookie';
         $isLoggedIn = $this->isLoggedIn();
-        $isSessionActive = !empty($_SESSION['user']);
+        $isSessionActive =
+            !empty($_SESSION['user']) &&
+            ($_SESSION['user']['browser'] === $_SERVER['HTTP_USER_AGENT']);
         $isCookiesSet = !empty($_COOKIE[self::$cookieName]) && !empty($_COOKIE[self::$cookiePassword]);
 
         if ($isSessionActive) {
@@ -81,6 +87,7 @@ class LoginController
                 $_SESSION['user'] = [
                     'username' => $user->getUsername(),
                     'password' => $user->getPassword(),
+                    'browser' => $_SERVER['HTTP_USER_AGENT']
                 ];
 
                 $loginViewHtml = $this->loginView->generateLogoutButtonHTML($welcomeWithCookieFeedback);
@@ -90,12 +97,6 @@ class LoginController
         } else {
             $loginViewHtml = $this->loginView->generateLoginFormHTML();
         }
-        // $loginViewHtml = ($isSessionActive
-        //     ? $this->loginView->generateLogoutButtonHTML()
-        //     : ($isCookiesSet
-        //     ? $this->loginView->generateLogoutButtonHTML($welcomeWithCookieFeedback)
-        //     : $this->loginView->generateLoginFormHTML()));
-
         $this->layoutView->render($isLoggedIn, $loginViewHtml);
     }
 
@@ -131,6 +132,7 @@ class LoginController
         $_SESSION['user'] = [
             'username' => $user->getUsername(),
             'password' => $user->getPassword(),
+            'browser' => $_SERVER['HTTP_USER_AGENT']
         ];
 
         if (isset($_POST[self::$keep])) {
@@ -207,7 +209,9 @@ class LoginController
 
                 break;
             case 'GET':
-                $isSessionActive = !empty($_SESSION['user']);
+                $isSessionActive =
+                    !empty($_SESSION['user']) &&
+                    ($_SESSION['user']['browser'] === $_SERVER['HTTP_USER_AGENT']);
                 $isCookiesSet = !empty($_COOKIE[self::$cookieName]) && !empty($_COOKIE[self::$cookieName]);
 
                 if ($isSessionActive) {
