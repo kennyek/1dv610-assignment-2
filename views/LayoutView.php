@@ -35,6 +35,7 @@ class LayoutView
             <body>
             <h1>Assignment 2</h1>
 
+            ' . $this->renderNavigationLink() . '
             ' . $this->renderIsLoggedIn($isLoggedIn) . '
 
             <div class="container">
@@ -60,5 +61,18 @@ class LayoutView
         } else {
             return '<h2>Not logged in</h2>';
         }
+    }
+
+    private function renderNavigationLink()
+    {
+        $href = (!isset($_GET['register'])
+            ? dirname($_SERVER['SCRIPT_NAME']) . '?register'
+            : dirname($_SERVER['SCRIPT_NAME']));
+
+        $content = (!isset($_GET['register'])
+            ? 'Register a new user'
+            : 'Back to login');
+
+        return '<a href="' . $href . '">' . $content . '</a>';
     }
 }

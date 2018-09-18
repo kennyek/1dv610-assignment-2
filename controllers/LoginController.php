@@ -6,6 +6,7 @@ require_once 'models/DatabaseConnection.php';
 require_once 'models/User.php';
 require_once 'views/LayoutView.php';
 require_once 'views/LoginView.php';
+require_once 'views/RegisterView.php';
 
 /**
  * Handles the login logic, such as checking logged in status and handle
@@ -28,6 +29,7 @@ class LoginController
     private static $login = 'LoginView::Login';
     private static $logout = 'LoginView::Logout';
     private static $keep = 'LoginView::KeepMeLoggedIn';
+    private static $register = 'RegisterView::Register';
 
     /** @var LoginView */
     private $layoutView;
@@ -35,11 +37,15 @@ class LoginController
     /** @var LoginView */
     private $loginView;
 
+    /** @var RegisterView */
+    private $registerView;
+
     /** Creates a new LoginController. */
     public function __construct()
     {
         $this->layoutView = new LayoutView();
         $this->loginView = new LoginView();
+        $this->registerView = new RegisterView();
     }
 
     /**
@@ -58,6 +64,21 @@ class LoginController
         }
     }
 
+    private function httpGetResponse()
+    {
+        if (isset($_GET['register'])) {
+            return $this->httpGetRegisterResponse();
+        }
+        
+        return $this->httpGetRootResponse();
+    }
+
+    private function httpGetRegisterResponse()
+    {
+        $registerViewHtml = $this->registerView->generateRegisterFormHTML();
+        return $this->layoutView->render(false, $registerViewHtml);
+    }
+
     /**
      * Renders a login view in response to a HTTP GET request.
      * 
@@ -65,7 +86,7 @@ class LoginController
      *
      * @return void BUT writes to standard output and cookies!
      */
-    private function httpGetResponse()
+    private function httpGetRootResponse()
     {
         $welcomeWithCookieFeedback = 'Welcome back with cookie';
         $isLoggedIn = $this->isLoggedIn();

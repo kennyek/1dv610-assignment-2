@@ -36,7 +36,7 @@ class LoginView
 
 					<input type="submit" name="' . self::$login . '" value="login" />
 				</fieldset>
-			</form>
+            </form>
 		';
     }
 
