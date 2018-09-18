@@ -176,6 +176,8 @@ class LoginController
 
     /**
      * Renders a login view in response to a HTTP POST logout request.
+     * 
+     * TODO: Refactor and remove magic values.
      *
      * @return void BUT writes to standard output and cookies!
      */
@@ -216,10 +218,19 @@ class LoginController
             User::insertUserIntoDatabase($username, $password, $passwordRepeat);
         } catch (Exception $exception) {
             $feedback = $exception->getMessage();
+
+            if (SecurityUtilities::hasUnsafeCharacters($username)) {
+                $username = SecurityUtilities::removeUnsafeCharactersFromString($username);
+            }
+
+            $registerViewHtml = $this->registerView->generateRegisterFormHTML($feedback, $username);
+            return $this->layoutView->render(false, $registerViewHtml);
         }
 
-        $registerViewHtml = $this->registerView->generateRegisterFormHTML($feedback, $username);
-        return $this->layoutView->render(false, $registerViewHtml);
+        $feedback = 'Registered new user.';
+
+        $loginViewHtml = $this->loginView->generateLoginFormHTML($feedback, $username);
+        return $this->layoutView->render(false, $loginViewHtml);
     }
 
     /**

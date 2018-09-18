@@ -50,6 +50,10 @@ class User
             $exceptionFeedback .= 'User exists, pick another username.<br />';
         }
 
+        if (SecurityUtilities::hasUnsafeCharacters($username)) {
+            $exceptionFeedback .= 'Username contains invalid characters.<br />';
+        }
+
         if (!empty($exceptionFeedback)) {
             throw new Exception($exceptionFeedback);
         }

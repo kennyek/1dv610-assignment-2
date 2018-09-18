@@ -3,6 +3,8 @@
 /** Set of static methods to use for security purposes. */
 class SecurityUtilities
 {
+    private static $unsafeCharacters = ['<', '>', '/'];
+
     /**
      * Creates a random string of a specific lenght.
      *
@@ -47,5 +49,38 @@ class SecurityUtilities
         $hash = $hash ?? encryptString($unencryptedString);
 
         return $hash;
+    }
+
+    /**
+     * Checks whether or not the provided string has unsafe characters in it.
+     *
+     * @param string $toAnalyze - The string to analyze for unsafe characters.
+     * @return boolean Whether or not the provided string has unsafe characters.
+     */
+    public static function hasUnsafeCharacters(string $toAnalyze)
+    {
+        $hasUnsafeCharacters = false;
+
+        foreach (self::$unsafeCharacters as $character) {
+            if (strpos($toAnalyze, $character) !== false) {
+                $hasUnsafeCharacters = true;
+                break;
+            }
+        }
+        
+        return $hasUnsafeCharacters;
+    }
+
+    /**
+     * Creates a copy of the string with unsafe characters, such as angle
+     * brackets, removed.
+     *
+     * @param string $unsafe - The string to remove unsafe characters from.
+     * @return string A copy of the passed string with unsafe characters
+     * removed.
+     */
+    public static function removeUnsafeCharactersFromString(string $unsafe): string
+    {
+        return strip_tags($unsafe);
     }
 }
